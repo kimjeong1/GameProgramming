@@ -1,3 +1,4 @@
+//lecture4-HW
 // 콘솔 서브시스템에서 Win32 창을 함께 사용하기 위한 설정
 // - /subsystem:console 환경(기본)에서 WinMain 대신 main()을 진입점으로 씀
 #pragma comment(lib, "d3d11.lib")
