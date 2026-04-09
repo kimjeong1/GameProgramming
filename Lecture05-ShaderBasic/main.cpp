@@ -112,10 +112,17 @@ ID3D11VertexShader* g_pVertexShader = nullptr;
 ID3D11PixelShader* g_pPixelShader = nullptr;
 ID3D11InputLayout* g_pInputLayout = nullptr;
 ID3D11Buffer* g_pVertexBuffer = nullptr;
+ID3D11Buffer* g_pConstantBuffer = nullptr;
+float g_Rotation = 0.0f; // 회전 각도
 
 struct Vertex {
     float x, y, z;
     float r, g, b, a;
+};
+
+// 1. 상수 버퍼에 담을 구조체 정의 (16바이트 정렬 필수!)
+struct ConstantBuffer {
+    float m[4][4]; // 4x4 배열로 선언
 };
 
 // --- [해상도 및 리소스 재구성 함수] ---
@@ -278,6 +285,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     
     const char* shaderSource = R"(
 
+        cbuffer CB_World : register(b0) {
+            matrix gWorld; 
+        };
+
         // [1. 입력 데이터 구조체]
         // CPU(C++ 코드)에서 보낸 정점 데이터가 처음으로 도착하는 입구임.
         // C++의 Vertex 구조체와 데이터 순서, 형식이 반드시 일치해야 함.
@@ -308,11 +319,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
             // 3D 좌표(float3)를 4D 좌표(float4)로 확장함.
             // 마지막 1.0f(w값)는 행렬 연산과 투영을 위해 필요함.
-            output.pos = float4(input.pos, 1.0f);
-
-            // 색상은 딱히 계산할 게 없으므로 들어온 대로 통과시킴 (Pass-through)
+            output.pos = mul(float4(input.pos, 1.0f), gWorld);
             output.col = input.col;
-
             return output;
         }
 
@@ -352,6 +360,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     D3D11_SUBRESOURCE_DATA initData = { vertices, 0, 0 };
     g_pd3dDevice->CreateBuffer(&bd, &initData, &g_pVertexBuffer);
 
+    // 4. 상수 버퍼 생성 (삼각형 버퍼 생성 직후에 추가)
+    D3D11_BUFFER_DESC cbd = {};
+    cbd.Usage = D3D11_USAGE_DEFAULT;
+    cbd.ByteWidth = sizeof(ConstantBuffer);
+    cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    g_pd3dDevice->CreateBuffer(&cbd, nullptr, &g_pConstantBuffer);
+
     // --- [게임 루프] ---
     MSG msg = { 0 };
     while (WM_QUIT != msg.message) {
@@ -360,7 +375,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             DispatchMessage(&msg);
         }
         else {
-            // [입력 처리: GetAsyncKeyState의 0x0001 플래그로 1회성 입력 감지]
+            // [1. 입력 처리]
             if (GetAsyncKeyState('F') & 0x0001) {
                 g_Config.IsFullscreen = !g_Config.IsFullscreen;
                 g_pSwapChain->SetFullscreenState(g_Config.IsFullscreen, nullptr);
@@ -368,27 +383,49 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             if (GetAsyncKeyState('1') & 0x0001) { g_Config.Width = 800; g_Config.Height = 600; g_Config.NeedsResize = true; }
             if (GetAsyncKeyState('2') & 0x0001) { g_Config.Width = 1280; g_Config.Height = 720; g_Config.NeedsResize = true; }
 
-            // [해상도 변경 적용]
+            // [2. 해상도 변경 적용]
             if (g_Config.NeedsResize) RebuildVideoResources(hWnd);
 
-            // [렌더링]
+            // [3. 회전 로직 업데이트]
+            g_Rotation += 0.005f; // 회전 속도 조절
+
+            // Y축 회전 행렬 계산 (삼각형이 세로축을 중심으로 회전)
+            float s = sinf(g_Rotation);
+            float c = cosf(g_Rotation);
+            ConstantBuffer cb = {};
+            cb.m[0][0] = c;     cb.m[0][1] = s;     cb.m[0][2] = 0.0f;  cb.m[0][3] = 0.0f;
+            cb.m[1][0] = -s;    cb.m[1][1] = c;     cb.m[1][2] = 0.0f;  cb.m[1][3] = 0.0f;
+            cb.m[2][0] = 0.0f;  cb.m[2][1] = 0.0f;  cb.m[2][2] = 1.0f;  cb.m[2][3] = 0.0f;
+            cb.m[3][0] = 0.0f;  cb.m[3][1] = 0.0f;  cb.m[3][2] = 0.0f;  cb.m[3][3] = 1.0f;
+
+            // [4. GPU로 행렬 데이터 전송]
+            g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb, 0, 0);
+
+            // [5. 렌더링 시작]
             float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
             g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, clearColor);
 
-            // 중요: 뷰포트는 매 프레임 바뀐 g_Config 기준으로 설정
+            // 뷰포트 설정
             D3D11_VIEWPORT vp = { 0.0f, 0.0f, (float)g_Config.Width, (float)g_Config.Height, 0.0f, 1.0f };
             g_pImmediateContext->RSSetViewports(1, &vp);
             g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, nullptr);
 
+            // 파이프라인 상태 설정
             UINT stride = sizeof(Vertex), offset = 0;
             g_pImmediateContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
             g_pImmediateContext->IASetInputLayout(g_pInputLayout);
             g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+            // 셰이더 및 상수 버퍼 연결
             g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+            g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pConstantBuffer); // VS에서 행렬을 사용하도록 설정
             g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+
+            // 그리기 명령
             g_pImmediateContext->Draw(3, 0);
 
-            g_pSwapChain->Present(g_Config.VSync, 0); // V-Sync 활성화
+            // 화면 교체 (V-Sync 적용)
+            g_pSwapChain->Present(g_Config.VSync, 0);
         }
     }
 
