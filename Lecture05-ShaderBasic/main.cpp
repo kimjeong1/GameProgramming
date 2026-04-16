@@ -123,6 +123,8 @@ struct Vertex {
 // 1. 상수 버퍼에 담을 구조체 정의 (16바이트 정렬 필수!)
 struct ConstantBuffer {
     float m[4][4]; // 4x4 배열로 선언
+    float colorRatio; // 0.0(검정) - 1.0(흰색) 사이의 값
+    float dummy[3];
 };
 
 // --- [해상도 및 리소스 재구성 함수] ---
@@ -287,6 +289,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         cbuffer CB_World : register(b0) {
             matrix gWorld; 
+            float colorRatio;
+            float3 dummy;
         };
 
         // [1. 입력 데이터 구조체]
@@ -334,6 +338,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         {
             // 정점 셰이더에서 넘겨받은 색상을 그대로 반환함.
             // (만약 여기서 return float4(1, 0, 0, 1); 이라고 쓰면 모든 삼각형이 빨갛게 나옴)
+            return float4(colorRatio, colorRatio, colorRatio, 1.0f);
             return input.col;
         }
     )";
@@ -389,17 +394,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             // [3. 회전 로직 업데이트]
             g_Rotation += 0.005f; // 회전 속도 조절
 
+
+            if (g_Rotation > 6.28f) g_Rotation = 0.0f;
+
             // Y축 회전 행렬 계산 (삼각형이 세로축을 중심으로 회전)
+
+            float ratio = (sinf(g_Rotation * 0.5f) + 1.0f) * 0.5f;
+
             float s = sinf(g_Rotation);
             float c = cosf(g_Rotation);
             ConstantBuffer cb = {};
-            cb.m[0][0] = c;     cb.m[0][1] = s;     cb.m[0][2] = 0.0f;  cb.m[0][3] = 0.0f;
-            cb.m[1][0] = -s;    cb.m[1][1] = c;     cb.m[1][2] = 0.0f;  cb.m[1][3] = 0.0f;
-            cb.m[2][0] = 0.0f;  cb.m[2][1] = 0.0f;  cb.m[2][2] = 1.0f;  cb.m[2][3] = 0.0f;
-            cb.m[3][0] = 0.0f;  cb.m[3][1] = 0.0f;  cb.m[3][2] = 0.0f;  cb.m[3][3] = 1.0f;
+            cb.m[0][0] = c;  cb.m[0][1] = s;
+            cb.m[1][0] = -s; cb.m[1][1] = c;
+            cb.m[2][2] = 1.0f;
+            cb.m[3][3] = 1.0f;
+
+            cb.colorRatio = ratio;
 
             // [4. GPU로 행렬 데이터 전송]
             g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb, 0, 0);
+            g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pConstantBuffer);
+            g_pImmediateContext->PSSetConstantBuffers(0, 1, &g_pConstantBuffer);
 
             // [5. 렌더링 시작]
             float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };

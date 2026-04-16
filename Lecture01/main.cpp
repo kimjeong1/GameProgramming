@@ -48,7 +48,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     RegisterClassExW(&wcex);
 
     // --- (B) 윈도우 생성 ---
-    // 실제 화면에 표시될 윈도우 객체를 생성함.
+    // 실제 화면에 표시될 윈도우 객체를 생성함
+    // Handle to a Window = HWND
     HWND hWnd = CreateWindowW(
         L"DirectXWindowClass",      // 등록한 클래스 이름
         L"DirectX Learning Window", // 창 타이틀 바 제목
