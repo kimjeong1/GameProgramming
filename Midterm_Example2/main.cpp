@@ -14,7 +14,7 @@ using namespace DirectX;
 struct ConstantData {
     XMFLOAT2 offset;
     float rotation; 
-    
+    float padding;
 };
 
 struct VideoConfig {
