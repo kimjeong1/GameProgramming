@@ -83,9 +83,9 @@
 ================================================================================
 */
 typedef struct {
-    int playerPos;
-    int isRunning;
-    char currentInput;
+    int playerPos; // 플레이어 위치
+    int isRunning; // 게임 종료 여부
+    char currentInput; // 입력값
 } GameContext;
 
 // --- 1. 입력 단계 (Process Input) ---

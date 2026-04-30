@@ -110,7 +110,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         {
             float2 g_Offset;
             float g_Rotation;
-            //float g_Padding;
+            float g_Padding;
         };
 
         struct VS_INPUT 
@@ -133,11 +133,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             float c = cos(g_Rotation);
             
             float3 rotPos = input.pos;
-            rotPos.x = input.pos.x * c + input.pos.y * s;
+            rotPos.x = input.pos.x * c - input.pos.y * s;
             rotPos.y = input.pos.x * s + input.pos.y * c;
 
             float3 finalPos = rotPos;
-            finalPos.x -= g_Offset.x;
+            finalPos.x += g_Offset.x;
             finalPos.y -= g_Offset.y;
 
             output.pos = float4(finalPos, 1.0f);

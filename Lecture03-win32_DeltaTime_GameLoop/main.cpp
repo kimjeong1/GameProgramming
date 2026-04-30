@@ -68,7 +68,7 @@ typedef struct {
 // --- [게임 엔진 핵심 단계] ---
 
 void ProcessInput(InputContext* context) {
-    context->isUp = (GetAsyncKeyState('W') & 0x8000);
+    context->isUp = (GetAsyncKeyState('W') & 0x8000); // bit and 연산
     context->isDown = (GetAsyncKeyState('S') & 0x8000);
     context->isLeft = (GetAsyncKeyState('A') & 0x8000);
     context->isRight = (GetAsyncKeyState('D') & 0x8000);
@@ -76,10 +76,17 @@ void ProcessInput(InputContext* context) {
 }
 
 void Update(GameObject* player, const InputContext* context, float dt) {
-    if (context->isUp)    player->y -= player->speed * dt;
-    if (context->isDown)  player->y += player->speed * dt;
-    if (context->isLeft)  player->x -= player->speed * dt;
-    if (context->isRight) player->x += player->speed * dt;
+    if (context->isUp)    
+        player->y -= player->speed * dt;
+
+    if (context->isDown)  
+        player->y += player->speed * dt;
+
+    if (context->isLeft)  
+        player->x -= player->speed * dt;
+
+    if (context->isRight) 
+        player->x += player->speed * dt;
 }
 
 void Render(const GameObject* player, float fps) {
@@ -111,7 +118,7 @@ int main() {
         prevTime = currentTime;
 
         // B. 루프 실행
-        ProcessInput(&input);
+        ProcessInput(&input); // 키 읽기
         Update(&player, &input, dt);
         Render(&player, 1.0f / dt);
 

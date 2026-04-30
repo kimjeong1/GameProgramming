@@ -239,7 +239,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
          c. 만약 정의되지 않은 시맨틱을 쓴다면?
             - 에러가 나거나, 값이 0(검정색 혹은 원점)으로 들어옴.
-            - 반대로 InputLayout에는 있는데 HLSL에서 안 쓰면? 그건 괜찮음 (남는 물건 처리).
+            - 반대로 InputLayout에는 있는데 HLSL에서 안 쓰면? 그건 괜찮음 (남는 물건 처리). **
 
      2. 하드웨어 유닛과의 연결 (Hardware Link):
         - GPU 내부에는 '좌표 계산 전용 유닛', '색상 처리 유닛' 등이 나뉘어 있음.

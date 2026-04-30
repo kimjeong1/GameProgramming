@@ -153,6 +153,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow) {
     }
 
     // 6. [중요] 자원 해제 - 빌려온 건 다 갚고 가야 함
+    // 순서 생성했던 반대 순서로 해제
     if (g_pVertexBuffer) g_pVertexBuffer->Release();
     if (g_pVertexLayout) g_pVertexLayout->Release();
     if (g_pVertexShader) g_pVertexShader->Release();

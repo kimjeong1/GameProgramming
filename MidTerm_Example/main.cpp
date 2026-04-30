@@ -36,7 +36,9 @@ public:
 
     ~GameObject() 
     {
-        //4번문제 버그발생지점
+        for (int i = 0; i < (int)components.size(); i++) {
+            delete components[i];
+        }
     }
 
     void AddComponent(Component* pComp)

@@ -35,7 +35,10 @@ struct PS_INPUT { float4 pos : SV_POSITION; float4 col : COLOR; };
 
 PS_INPUT VS(VS_INPUT input) {
     PS_INPUT output;
-    output.pos = float4(input.pos, 1.0f); // 3D 좌표를 4D로 확장
+
+
+    // 3D 좌표를 4D로 확장 (회전, 확대, 축소와 같은 걸 처리하기 위해서)
+    output.pos = float4(input.pos, 1.0f); 
     output.col = input.col;
     return output;
 }
@@ -96,7 +99,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // 정점의 데이터 형식을 정의 (IA 단계에 알려줌)
     D3D11_INPUT_ELEMENT_DESC layout[] = {
+        // x, y, z
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        // r, g, b, a -> 그래서 offset이 12부터 시작
         { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
     ID3D11InputLayout* pInputLayout;
@@ -111,7 +116,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     };
     ID3D11Buffer* pVBuffer;
     D3D11_BUFFER_DESC bd = { sizeof(vertices), D3D11_USAGE_DEFAULT, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0 };
-    D3D11_SUBRESOURCE_DATA initData = { vertices, 0, 0 };
+    D3D11_SUBRESOURCE_DATA initData = { vertices, 0, 0 };  // cpu -> gpu로 전달
     g_pd3dDevice->CreateBuffer(&bd, &initData, &pVBuffer);
 
     // --- [5. 정석 게임 루프] ---
